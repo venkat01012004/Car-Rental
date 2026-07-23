@@ -2,112 +2,31 @@ pipeline {
 
     agent any
 
-    tools {
-        maven 'Maven3'
-        jdk 'JDK21'
-    }
-
     environment {
-        APP_NAME        = 'CarRentalManagementSystem'
-        WAR_FILE         = "${APP_NAME}.war"
-        TOMCAT_WEBAPPS   = '/opt/tomcat9/webapps'
-        EC2_USER         = 'ubuntu'
-        EC2_HOST         = credentials('ec2-host')
-        EC2_SSH_CRED_ID  = 'ec2-ssh-key'
-    }
-
-    options {
-        timestamps()
-        buildDiscarder(logRotator(numToKeepStr: '10'))
-        disableConcurrentBuilds()
+        APP_NAME = "CarRentalManagementSystem"
+        SERVER_IP = "13.233.173.60"
     }
 
     stages {
 
         stage('Checkout') {
             steps {
-                echo 'Checking out source code from GitHub...'
                 checkout scm
             }
         }
 
-        stage('Build') {
+        stage('Build and Deploy') {
             steps {
-                echo 'Building the Car Rental Management System with Maven...'
-                sh 'mvn -B clean compile'
-            }
-        }
-
-        stage('Test') {
-            steps {
-                echo 'Running unit tests (if any)...'
-                sh 'mvn -B test || true'
-            }
-        }
-
-        stage('Package WAR') {
-            steps {
-                echo 'Packaging the application into a WAR file...'
-                sh 'mvn -B clean package -DskipTests'
-            }
-            post {
-                success {
-                    archiveArtifacts artifacts: "target/${WAR_FILE}", fingerprint: true
-                }
-            }
-        }
-
-        stage('Verify Artifact') {
-            steps {
-                echo 'Verifying WAR file was generated successfully...'
-                sh "ls -la target/${WAR_FILE}"
-            }
-        }
-
-        stage('Deploy to AWS EC2 (Tomcat 9)') {
-            when {
-                branch 'main'
-            }
-            steps {
-                echo 'Deploying WAR file to Apache Tomcat 9 on AWS EC2...'
-                sshagent(credentials: ["${EC2_SSH_CRED_ID}"]) {
-                    sh """
-                        scp -o StrictHostKeyChecking=no target/${WAR_FILE} ${EC2_USER}@${EC2_HOST}:/tmp/${WAR_FILE}
-                        ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} '
-                            sudo systemctl stop tomcat9 &&
-                            sudo rm -rf ${TOMCAT_WEBAPPS}/${APP_NAME} ${TOMCAT_WEBAPPS}/${WAR_FILE} &&
-                            sudo mv /tmp/${WAR_FILE} ${TOMCAT_WEBAPPS}/${WAR_FILE} &&
-                            sudo systemctl start tomcat9
-                        '
-                    """
-                }
-            }
-        }
-
-        stage('Post-Deployment Health Check') {
-            when {
-                branch 'main'
-            }
-            steps {
-                echo 'Waiting for Tomcat to start and deploy the application...'
-                sleep(time: 20, unit: 'SECONDS')
                 sh """
-                    curl -sSf http://${EC2_HOST}:8080/${APP_NAME}/home || \
-                    (echo 'Health check failed!' && exit 1)
+                ssh -o StrictHostKeyChecking=no ubuntu@${SERVER_IP} '
+                    sudo rm -rf Car-rental
+                    git clone https://github.com/venkat01012004/Car-rental.git
+                    cd Car-rental/${APP_NAME}
+                    mvn clean package
+                   sudo cp target/${APP_NAME}.war /opt/tomcat/webapps/
+                '
                 """
             }
-        }
-    }
-
-    post {
-        success {
-            echo "Build and deployment of ${APP_NAME} completed successfully."
-        }
-        failure {
-            echo "Build or deployment of ${APP_NAME} failed. Check the logs above for details."
-        }
-        always {
-            cleanWs()
         }
     }
 }
