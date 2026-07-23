@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 800 500" width="800" height="500" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <clipPath id="clip"><rect width="800" height="500" rx="0" ry="0"/></clipPath>
+    <linearGradient id="fade" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#0b1220" stop-opacity="0.35"/>
+      <stop offset="0.35" stop-color="#0b1220" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <g clip-path="url(#clip)">
+    <image href="https://images.unsplash.com/photo-1612563893490-d86ed296e5e6?auto=format&amp;fit=crop&amp;w=1600&amp;q=90" x="0" y="0" width="800" height="500" preserveAspectRatio="xMidYMid slice"/>
+    <rect width="800" height="500" fill="url(#fade)"/>
+  </g>
+</svg>
